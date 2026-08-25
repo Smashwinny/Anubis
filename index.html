@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#101713">
+  <title>Anubis · 私密保险箱</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="shell">
+    <header><div class="mark">A</div><div><h1>Anubis</h1><p>守护住只属于你的秘密</p></div><button id="lockBtn" class="ghost hidden">立即锁定</button></header>
+    <section id="welcome" class="panel hero">
+      <span class="eyebrow">ZERO-KNOWLEDGE LOCAL VAULT</span>
+      <h2 id="welcomeTitle">创建你的保险箱</h2>
+      <p id="welcomeText">所有内容先在此设备加密，再保存。主密码不会被上传，也无法由我们找回。</p>
+      <form id="unlockForm">
+        <label>主密码<input id="masterPassword" type="password" minlength="10" autocomplete="current-password" required placeholder="至少 10 个字符"></label>
+        <label id="confirmWrap">再次输入<input id="confirmPassword" type="password" minlength="10" autocomplete="new-password" placeholder="确认主密码"></label>
+        <button type="submit" class="primary" id="unlockSubmit">创建保险箱</button>
+      </form>
+      <div class="notice">请牢记主密码并定期导出备份。忘记密码意味着数据永久无法解密。</div>
+    </section>
+    <section id="vault" class="hidden">
+      <div class="toolbar"><input id="search" type="search" placeholder="搜索标题、类型和标签"><button id="addBtn" class="primary">＋ 新秘密</button></div>
+      <div class="stats"><span><b id="itemCount">0</b> 条秘密</span><span>🔒 端到端本地加密</span><div><button id="exportBtn" class="ghost">导出加密备份</button><label class="ghost file">导入备份<input id="importInput" type="file" accept="application/json"></label></div></div>
+      <div id="empty" class="panel empty"><div>◇</div><h3>保险箱还是空的</h3><p>保存账号、Token、私密文字或珍贵图片。</p></div>
+      <div id="cards" class="grid"></div>
+    </section>
+  </main>
+  <dialog id="editor"><form id="secretForm" method="dialog"><div class="dialog-head"><h2 id="dialogTitle">保存新秘密</h2><button type="button" class="icon" id="closeDialog">×</button></div>
+    <input id="editId" type="hidden"><label>类型<select id="kind"><option value="password">账号密码</option><option value="token">API Token / 密钥</option><option value="note">私密文字</option><option value="image">图片</option></select></label>
+    <label>标题<input id="title" required maxlength="100" placeholder="例如：GitHub 账号"></label><label>标签<input id="tags" maxlength="100" placeholder="工作, 开发"></label>
+    <label id="usernameWrap">账号<input id="username" maxlength="200" autocomplete="off"></label><label>秘密内容<textarea id="content" required rows="7" placeholder="密码、Token 或你的秘密"></textarea></label>
+    <label id="imageWrap" class="hidden">选择图片<input id="imageInput" type="file" accept="image/*"><img id="preview" class="preview hidden" alt="图片预览"></label>
+    <div class="actions"><button type="button" class="danger hidden" id="deleteBtn">删除</button><span></span><button type="button" class="ghost" id="cancelBtn">取消</button><button type="submit" class="primary">加密保存</button></div>
+  </form></dialog>
+  <div id="toast" role="status"></div>
+  <script src="app.js"></script>
+</body>
+</html>
