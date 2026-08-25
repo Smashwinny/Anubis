@@ -1,0 +1,13 @@
+'use strict';
+const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),{spawn}=require('node:child_process'),crypto=require('node:crypto');
+const root=path.join(__dirname,'..'),data=path.join(root,'tmp','test-server-data'),port=18987,base=`http://127.0.0.1:${port}`,id='a'.repeat(32),token='b'.repeat(64),headers={authorization:`Bearer ${token}`,'content-type':'application/json'};
+const snapshot=n=>({meta:{salt:'salt',check:{iv:'iv',data:'check'}},items:{iv:'iv',data:`cipher-${n}`}});
+let child;
+test.before(async()=>{fs.rmSync(data,{recursive:true,force:true});fs.mkdirSync(data,{recursive:true});child=spawn(process.execPath,['server.js'],{cwd:root,env:{...process.env,PORT:String(port),ANUBIS_DATA_DIR:data}});for(let i=0;i<50;i++){try{await fetch(base);return}catch{}await new Promise(r=>setTimeout(r,30))}throw Error('server did not start')});
+test.after(()=>{child?.kill();fs.rmSync(data,{recursive:true,force:true})});
+test('creates, authenticates and versions opaque snapshots',async()=>{let r=await fetch(`${base}/api/v1/vaults/${id}`,{method:'POST',headers,body:JSON.stringify(snapshot(1))});assert.equal(r.status,201);assert.equal((await r.json()).revision,1);
+  r=await fetch(`${base}/api/v1/vaults/${id}`,{headers:{authorization:'Bearer wrong'}});assert.equal(r.status,401);
+  r=await fetch(`${base}/api/v1/vaults/${id}`,{headers});let body=await r.json();assert.equal(body.snapshot.items.data,'cipher-1');
+  r=await fetch(`${base}/api/v1/vaults/${id}`,{method:'PUT',headers,body:JSON.stringify({baseRevision:1,snapshot:snapshot(2)})});assert.equal((await r.json()).revision,2);
+  r=await fetch(`${base}/api/v1/vaults/${id}`,{method:'PUT',headers,body:JSON.stringify({baseRevision:1,snapshot:snapshot(3)})});assert.equal(r.status,409);
+  const stored=JSON.parse(fs.readFileSync(path.join(data,`${id}.json`)));assert.equal(stored.authHash,crypto.createHash('sha256').update(token).digest('hex'));assert.equal(stored.history.length,1);assert.equal(JSON.stringify(stored).includes(token),false)});

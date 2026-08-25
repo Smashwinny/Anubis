@@ -1,0 +1,21 @@
+#!/usr/bin/env node
+'use strict';
+const http=require('http'),fs=require('fs'),path=require('path'),crypto=require('crypto');
+const ROOT=__dirname,DATA=process.env.ANUBIS_DATA_DIR||path.join(ROOT,'server-data'),PORT=Number(process.env.PORT||8080),MAX=12*1024*1024;
+fs.mkdirSync(DATA,{recursive:true,mode:0o700});
+const mime={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.json':'application/json; charset=utf-8','.webmanifest':'application/manifest+json','.svg':'image/svg+xml'};
+const hash=s=>crypto.createHash('sha256').update(s).digest('hex'),safe=s=>/^[a-f0-9-]{20,80}$/.test(s||'');
+function json(res,status,obj){res.writeHead(status,{'content-type':'application/json','cache-control':'no-store'});res.end(JSON.stringify(obj))}
+function body(req){return new Promise((ok,no)=>{let b='';req.on('data',c=>{b+=c;if(b.length>MAX){no(Error('too large'));req.destroy()}});req.on('end',()=>{try{ok(JSON.parse(b||'{}'))}catch(e){no(e)}});req.on('error',no)})}
+function token(req){return (req.headers.authorization||'').replace(/^Bearer\s+/,'')}
+function vaultFile(id){return path.join(DATA,`${id}.json`)}
+function validSnapshot(x){return x&&x.meta&&x.items&&typeof x.meta.salt==='string'&&typeof x.items.data==='string'&&x.items.data.length<MAX}
+async function api(req,res,url){const parts=url.pathname.split('/').filter(Boolean),id=parts[3];if(parts[0]!=='api'||parts[1]!=='v1'||parts[2]!=='vaults'||!safe(id))return false;const file=vaultFile(id),rawToken=token(req),auth=hash(rawToken);
+  if(req.method==='POST'){if(fs.existsSync(file))return json(res,409,{error:'vault_exists'}),true;const snapshot=await body(req);if(!rawToken||!validSnapshot(snapshot))return json(res,400,{error:'invalid_request'}),true;const doc={authHash:auth,revision:1,updatedAt:new Date().toISOString(),snapshot,history:[]};fs.writeFileSync(file,JSON.stringify(doc),{mode:0o600,flag:'wx'});return json(res,201,{revision:1}),true}
+  if(!fs.existsSync(file))return json(res,404,{error:'not_found'}),true;const doc=JSON.parse(fs.readFileSync(file));const known=Buffer.from(doc.authHash),given=Buffer.from(auth);if(known.length!==given.length||!crypto.timingSafeEqual(known,given))return json(res,401,{error:'unauthorized'}),true;
+  if(req.method==='GET')return json(res,200,{revision:doc.revision,updatedAt:doc.updatedAt,snapshot:doc.snapshot}),true;
+  if(req.method==='PUT'){const input=await body(req);if(!validSnapshot(input.snapshot)||!Number.isInteger(input.baseRevision))return json(res,400,{error:'invalid_request'}),true;if(input.baseRevision!==doc.revision)return json(res,409,{error:'revision_conflict',revision:doc.revision,snapshot:doc.snapshot}),true;doc.history.push({revision:doc.revision,updatedAt:doc.updatedAt,snapshot:doc.snapshot});doc.history=doc.history.slice(-20);doc.revision++;doc.updatedAt=new Date().toISOString();doc.snapshot=input.snapshot;fs.writeFileSync(file,JSON.stringify(doc),{mode:0o600});return json(res,200,{revision:doc.revision}),true}
+  return json(res,405,{error:'method_not_allowed'}),true;
+}
+const server=http.createServer(async(req,res)=>{try{const url=new URL(req.url,'http://localhost');if(await api(req,res,url))return;if(req.method!=='GET')return json(res,405,{error:'method_not_allowed'});const rel=url.pathname==='/'?'index.html':decodeURIComponent(url.pathname.slice(1));if(rel.includes('..')||rel.startsWith('server-data')||rel==='server.js')return json(res,404,{error:'not_found'});const file=path.join(ROOT,rel);if(!fs.existsSync(file)||!fs.statSync(file).isFile())return json(res,404,{error:'not_found'});res.writeHead(200,{'content-type':mime[path.extname(file)]||'application/octet-stream','x-content-type-options':'nosniff','referrer-policy':'no-referrer','content-security-policy':"default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; connect-src 'self' https: http:"});fs.createReadStream(file).pipe(res)}catch(e){json(res,e.message==='too large'?413:400,{error:'bad_request'})}});
+server.listen(PORT,()=>console.log(`Anubis listening on http://localhost:${PORT}`));
