@@ -25,6 +25,26 @@ ANUBIS_DATA_DIR=/data/anubis PORT=8080 node server.js
 
 请为数据目录做异地、版本化备份。服务端保留最近 20 个密文版本；客户端在线时每分钟及每次修改后自动同步。
 
+## Ubuntu 桌面端
+
+```bash
+chmod +x ubuntu/install.sh ubuntu/uninstall.sh
+./ubuntu/install.sh
+```
+
+安装器会创建用户级 systemd 服务和应用菜单入口，不需要 root。卸载入口不会删除 `server-data/` 中的加密数据。
+
+## Android 端
+
+Android 工程位于 `android/`，使用原生 WebView 的 HTTPS 虚拟域名加载随 APK 打包的前端，因此本地加密离线可用。图片选择和加密备份下载已桥接到系统能力。
+
+```bash
+./gradlew -p android assembleDebug
+adb install -r android/app/build/outputs/apk/debug/app-debug.apk
+```
+
+首次在手机启用同步时，填入可从手机访问的服务器地址（不能填电脑上的 `127.0.0.1`）。公网部署必须使用 HTTPS；局域网调试可临时使用电脑的 LAN IP。
+
 ## 安全设计
 
 - 主密码通过 PBKDF2-SHA-256（310,000 次迭代）派生 256-bit 密钥。

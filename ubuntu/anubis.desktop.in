@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Anubis
+Comment=私密保险箱
+Exec=@CHROME@ --app=http://127.0.0.1:8080 --user-data-dir=@APP_DIR@/desktop-profile
+Icon=@APP_DIR@/icon.svg
+Terminal=false
+Categories=Utility;Security;
+StartupWMClass=anubis

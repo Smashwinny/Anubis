@@ -2,3 +2,7 @@ tmp/
 .DS_Store
 *.log
 server-data/
+desktop-profile/
+android/.gradle/
+android/app/build/
+android/local.properties

@@ -1,0 +1,14 @@
+[Unit]
+Description=Anubis encrypted vault
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=@APP_DIR@
+ExecStart=/usr/bin/env node @APP_DIR@/server.js
+Restart=on-failure
+Environment=PORT=8080
+Environment=ANUBIS_DATA_DIR=@APP_DIR@/server-data
+
+[Install]
+WantedBy=default.target

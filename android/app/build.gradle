@@ -1,0 +1,23 @@
+plugins { id 'com.android.application' }
+
+android {
+    namespace 'com.smashwinny.anubis'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId 'com.smashwinny.anubis'
+        minSdk 23
+        targetSdk 34
+        versionCode 1
+        versionName '0.3.0'
+    }
+
+    sourceSets.main.assets.srcDir layout.buildDirectory.dir('generated/anubis-assets')
+}
+
+tasks.register('syncWebAssets', Copy) {
+    from('../..')
+    include 'index.html', 'styles.css', 'sync.css', 'app.js', 'sync.js', 'manifest.webmanifest', 'icon.svg'
+    into layout.buildDirectory.dir('generated/anubis-assets')
+}
+tasks.named('preBuild').configure { dependsOn 'syncWebAssets' }
