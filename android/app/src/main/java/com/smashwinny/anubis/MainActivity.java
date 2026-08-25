@@ -10,6 +10,8 @@ import android.os.Build;
 import android.os.Environment;
 import android.provider.MediaStore;
 import android.webkit.JavascriptInterface;
+import android.webkit.ConsoleMessage;
+import android.webkit.JsResult;
 import android.webkit.MimeTypeMap;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
@@ -19,6 +21,7 @@ import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.Toast;
+import android.app.AlertDialog;
 import android.util.Log;
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -51,6 +54,21 @@ public class MainActivity extends Activity {
         webView.addJavascriptInterface(new AndroidBridge(), "AnubisAndroid");
         webView.setWebViewClient(new LocalClient());
         webView.setWebChromeClient(new WebChromeClient() {
+            @Override public boolean onJsConfirm(WebView view, String url, String message, JsResult result) {
+                Log.i(TAG,"JavaScript confirm requested");
+                new AlertDialog.Builder(MainActivity.this)
+                    .setTitle("Anubis 确认")
+                    .setMessage(message)
+                    .setPositiveButton("确认",(dialog,which)->result.confirm())
+                    .setNegativeButton("取消",(dialog,which)->result.cancel())
+                    .setOnCancelListener(dialog->result.cancel())
+                    .show();
+                return true;
+            }
+            @Override public boolean onConsoleMessage(ConsoleMessage message) {
+                Log.d(TAG,"web "+message.messageLevel()+" "+message.sourceId()+":"+message.lineNumber()+" "+message.message());
+                return true;
+            }
             @Override public boolean onShowFileChooser(WebView view, ValueCallback<Uri[]> callback, FileChooserParams params) {
                 if (fileCallback != null) fileCallback.onReceiveValue(null);
                 fileCallback = callback;
