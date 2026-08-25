@@ -23,6 +23,7 @@
         <label id="confirmWrap">再次输入<input id="confirmPassword" type="password" minlength="10" autocomplete="new-password" placeholder="确认主密码"></label>
         <button type="submit" class="primary" id="unlockSubmit">创建保险箱</button>
         <button type="button" class="ghost wide" id="joinBtn">扫码加入保险箱</button>
+        <button type="button" class="ghost wide" id="receiveBtn">从手机接收保险箱</button>
       </form>
       <div class="notice">请牢记主密码并定期导出备份。忘记密码意味着数据永久无法解密。</div>
     </section>
@@ -39,6 +40,7 @@
     <div id="syncReady" class="hidden"><img id="pairingQr" class="qr" alt="Anubis 设备配对二维码"><p class="qr-hint">在手机 Anubis 中点击“扫码加入保险箱”</p><details><summary>无法扫码？使用手动配对码</summary><label>配对码<textarea id="pairingCode" rows="5" readonly></textarea></label><button type="button" id="copyPairing" class="ghost wide">复制配对码</button></details><button type="button" id="syncNow" class="primary wide">立即同步</button></div>
   </form></dialog>
   <dialog id="joinDialog"><form method="dialog"><div class="dialog-head"><h2>扫码加入保险箱</h2><button type="button" class="icon close-join">×</button></div><p class="muted">扫描已登录电脑显示的配对二维码。</p><button type="button" id="scanPairing" class="primary wide">打开相机扫码</button><details><summary>无法扫码？手动粘贴</summary><label>配对码<textarea id="joinCode" rows="6" placeholder="粘贴 Anubis 配对码"></textarea></label><button type="button" id="joinConfirm" class="ghost wide">使用配对码加入</button></details></form></dialog>
+  <dialog id="receiveDialog"><form method="dialog"><div class="dialog-head"><h2>从手机接收保险箱</h2><button type="button" class="icon close-receive">×</button></div><p class="muted">用已有保险箱的手机扫描。二维码将在 10 分钟后失效。</p><img id="receiveQr" class="qr" alt="接收手机保险箱二维码"><p id="receiveStatus" class="qr-hint">正在准备安全通道…</p><details><summary>无法扫码？查看临时配对码</summary><textarea id="receiveCode" rows="5" readonly></textarea></details></form></dialog>
   <dialog id="editor"><form id="secretForm" method="dialog"><div class="dialog-head"><h2 id="dialogTitle">保存新秘密</h2><button type="button" class="icon" id="closeDialog">×</button></div>
     <input id="editId" type="hidden"><label>类型<select id="kind"><option value="password">账号密码</option><option value="token">API Token / 密钥</option><option value="note">私密文字</option><option value="image">图片</option></select></label>
     <label>标题<input id="title" required maxlength="100" placeholder="例如：GitHub 账号"></label><label>标签<input id="tags" maxlength="100" placeholder="工作, 开发"></label>

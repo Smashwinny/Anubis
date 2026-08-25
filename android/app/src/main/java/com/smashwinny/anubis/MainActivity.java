@@ -3,6 +3,7 @@ package com.smashwinny.anubis;
 import android.app.Activity;
 import android.content.ContentValues;
 import android.content.Intent;
+import android.content.pm.ApplicationInfo;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Build;
@@ -36,6 +37,7 @@ public class MainActivity extends Activity {
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
+        WebView.setWebContentsDebuggingEnabled((getApplicationInfo().flags & ApplicationInfo.FLAG_DEBUGGABLE) != 0);
         webView = new WebView(this);
         setContentView(webView);
         WebSettings s = webView.getSettings();
@@ -69,6 +71,10 @@ public class MainActivity extends Activity {
 
     @Override public void onBackPressed() { if (webView.canGoBack()) webView.goBack(); else super.onBackPressed(); }
 
+    private void startQrScanner() {
+        new IntentIntegrator(this).setCaptureActivity(com.journeyapps.barcodescanner.CaptureActivity.class).setDesiredBarcodeFormats(IntentIntegrator.QR_CODE).setPrompt("扫描电脑上的 Anubis 配对二维码").setBeepEnabled(false).setOrientationLocked(false).initiateScan();
+    }
+
     private class LocalClient extends WebViewClient {
         @Override public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
             Uri uri=request.getUrl();
@@ -77,15 +83,18 @@ public class MainActivity extends Activity {
             try { InputStream in=getAssets().open(name); String ext=MimeTypeMap.getFileExtensionFromUrl(name),mime=MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext); return new WebResourceResponse(mime==null?"application/octet-stream":mime,"UTF-8",in); }
             catch(Exception e){ return new WebResourceResponse("text/plain","UTF-8",404,"Not found",null,new ByteArrayInputStream(new byte[0])); }
         }
-        @Override public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
-            if ("app.anubis.invalid".equals(request.getUrl().getHost())) return false;
-            startActivity(new Intent(Intent.ACTION_VIEW,request.getUrl())); return true;
+        private boolean route(Uri uri) {
+            if ("anubis".equals(uri.getScheme()) && "scan".equals(uri.getHost())) { startQrScanner(); return true; }
+            if ("app.anubis.invalid".equals(uri.getHost())) return false;
+            startActivity(new Intent(Intent.ACTION_VIEW,uri)); return true;
         }
+        @Override public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) { return route(request.getUrl()); }
+        @SuppressWarnings("deprecation") @Override public boolean shouldOverrideUrlLoading(WebView view, String url) { return route(Uri.parse(url)); }
     }
 
     private class AndroidBridge {
         @JavascriptInterface public void scanPairing() {
-            runOnUiThread(() -> new IntentIntegrator(MainActivity.this).setDesiredBarcodeFormats(IntentIntegrator.QR_CODE).setPrompt("扫描电脑上的 Anubis 配对二维码").setBeepEnabled(false).setOrientationLocked(false).initiateScan());
+            runOnUiThread(MainActivity.this::startQrScanner);
         }
         @JavascriptInterface public void saveBackup(String text, String filename) {
             runOnUiThread(() -> { try {
