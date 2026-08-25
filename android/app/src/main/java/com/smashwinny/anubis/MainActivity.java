@@ -24,11 +24,14 @@ import android.widget.Toast;
 import android.app.AlertDialog;
 import android.util.Log;
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import org.json.JSONObject;
 import com.google.zxing.integration.android.IntentIntegrator;
 import com.google.zxing.integration.android.IntentResult;
@@ -122,6 +125,24 @@ public class MainActivity extends Activity {
     }
 
     private class AndroidBridge {
+        @JavascriptInterface public void httpRequest(String id, String target, String method, String token, String body) {
+            new Thread(() -> {
+                HttpURLConnection connection=null;
+                try {
+                    URL url=new URL(target);
+                    if(!"http".equals(url.getProtocol())&&!"https".equals(url.getProtocol()))throw new Exception("unsupported protocol");
+                    connection=(HttpURLConnection)url.openConnection();
+                    connection.setConnectTimeout(8000); connection.setReadTimeout(15000); connection.setUseCaches(false);
+                    connection.setRequestMethod(method); connection.setRequestProperty("Authorization","Bearer "+token); connection.setRequestProperty("Content-Type","application/json");
+                    if(body!=null&&!body.isEmpty()){connection.setDoOutput(true);try(OutputStream out=connection.getOutputStream()){out.write(body.getBytes(StandardCharsets.UTF_8));}}
+                    int status=connection.getResponseCode(); InputStream in=status>=400?connection.getErrorStream():connection.getInputStream();
+                    ByteArrayOutputStream bytes=new ByteArrayOutputStream(); if(in!=null)try(InputStream source=in){byte[] chunk=new byte[8192];int count,total=0;while((count=source.read(chunk))!=-1){total+=count;if(total>13*1024*1024)throw new Exception("response too large");bytes.write(chunk,0,count);}}
+                    finishHttp(id,status,new String(bytes.toByteArray(),StandardCharsets.UTF_8),null);
+                } catch(Exception e){finishHttp(id,0,"",e.getClass().getSimpleName()+": "+e.getMessage());}
+                finally {if(connection!=null)connection.disconnect();}
+            },"AnubisHttp").start();
+        }
+        private void finishHttp(String id,int status,String body,String error){if(error==null)Log.i(TAG,"native HTTP completed status="+status);else Log.e(TAG,"native HTTP failed: "+error);runOnUiThread(()->webView.evaluateJavascript("window.onAnubisHttp("+JSONObject.quote(id)+","+status+","+JSONObject.quote(body)+","+(error==null?"null":JSONObject.quote(error))+")",null));}
         @JavascriptInterface public void scanPairing() {
             Log.i(TAG,"JavascriptInterface.scanPairing thread="+Thread.currentThread().getName());
             runOnUiThread(MainActivity.this::startQrScanner);

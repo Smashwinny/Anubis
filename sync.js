@@ -3,7 +3,10 @@ let syncBusy=false,syncTimer,inviteTimer;
 const randomHex=n=>[...crypto.getRandomValues(new Uint8Array(n))].map(x=>x.toString(16).padStart(2,'0')).join('');
 const cleanServer=s=>(s||location.origin).trim().replace(/\/$/,'');
 const apiUrl=c=>`${c.server}/api/v1/vaults/${c.vaultId}`;
-async function request(c,method,body){const r=await fetch(apiUrl(c),{method,headers:{authorization:`Bearer ${c.token}`,'content-type':'application/json'},body:body?JSON.stringify(body):undefined,cache:'no-store'}),data=await r.json().catch(()=>({}));return{ok:r.ok,status:r.status,data}}
+const nativePending=new Map();let nativeRequestId=0;
+window.onAnubisHttp=(id,status,text,error)=>{const p=nativePending.get(id);if(!p)return;nativePending.delete(id);error?p.no(Error(error)):p.ok({ok:status>=200&&status<300,status,data:(()=>{try{return JSON.parse(text)}catch{return{}}})()})};
+async function httpJson(url,method,token,body){if(window.AnubisAndroid?.httpRequest){const id=String(++nativeRequestId),text=body?JSON.stringify(body):'';return new Promise((ok,no)=>{nativePending.set(id,{ok,no});window.AnubisAndroid.httpRequest(id,url,method,token,text)})}const r=await fetch(url,{method,headers:{authorization:`Bearer ${token}`,'content-type':'application/json'},body:body?JSON.stringify(body):undefined,cache:'no-store'}),data=await r.json().catch(()=>({}));return{ok:r.ok,status:r.status,data}}
+async function request(c,method,body){return httpJson(apiUrl(c),method,c.token,body)}
 async function snapshot(){return{meta:await get('meta'),items:await get('items')}}
 const canonical=x=>JSON.stringify([...x].sort((a,b)=>a.id.localeCompare(b.id)));
 function merge(local,remote){const all=new Map();for(const x of [...local,...remote]){const old=all.get(x.id);if(!old||String(x.updatedAt)>String(old.updatedAt))all.set(x.id,x)}return[...all.values()]}
@@ -13,7 +16,7 @@ function scheduleSync(){clearTimeout(syncTimer);syncTimer=setTimeout(()=>syncVau
 function pairing(c){return btoa(JSON.stringify({format:'anubis-pair-v1',server:c.server,vaultId:c.vaultId,token:c.token}))}
 const hexBytes=s=>Uint8Array.from(s.match(/../g)||[],x=>parseInt(x,16));
 async function inviteKey(token){return crypto.subtle.importKey('raw',hexBytes(token),{name:'AES-GCM'},false,['encrypt','decrypt'])}
-async function inviteRequest(p,method,body){const r=await fetch(`${p.server}/api/v1/invites/${p.inviteId}`,{method,headers:{authorization:`Bearer ${p.token}`,'content-type':'application/json'},body:body?JSON.stringify(body):undefined,cache:'no-store'}),data=await r.json().catch(()=>({}));return{ok:r.ok,status:r.status,data}}
+async function inviteRequest(p,method,body){return httpJson(`${p.server}/api/v1/invites/${p.inviteId}`,method,p.token,body)}
 function showPairing(c){const code=pairing(c),qr=qrcode(0,'M');qr.addData(code);qr.make();$('#pairingCode').value=code;$('#pairingQr').src=qr.createDataURL(5,12);$('#syncSetup').classList.add('hidden');$('#syncReady').classList.remove('hidden');$('#serverWrap').classList.add('hidden')}
 async function suggestedServer(){if(!['localhost','127.0.0.1'].includes(location.hostname))return location.origin;try{const r=await fetch('/api/v1/discovery',{cache:'no-store'}),x=await r.json();return x.suggestedServer||location.origin}catch{return location.origin}}
 async function showSync(){const c=await get('sync');$('#syncServer').value=c?.server||await suggestedServer();$('#syncServer').disabled=!!c;$('#syncSetup').classList.toggle('hidden',!!c);$('#syncReady').classList.toggle('hidden',!c);$('#serverWrap').classList.toggle('hidden',!!c);if(c)showPairing(c);$('#syncDialog').showModal()}
