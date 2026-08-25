@@ -19,6 +19,7 @@ import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.Toast;
+import android.util.Log;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -30,6 +31,7 @@ import com.google.zxing.integration.android.IntentIntegrator;
 import com.google.zxing.integration.android.IntentResult;
 
 public class MainActivity extends Activity {
+    private static final String TAG = "AnubisScan";
     private static final String ORIGIN = "https://app.anubis.invalid/";
     private static final int FILE_PICKER = 42;
     private WebView webView;
@@ -62,6 +64,7 @@ public class MainActivity extends Activity {
 
     @Override protected void onActivityResult(int request, int result, Intent data) {
         super.onActivityResult(request, result, data);
+        Log.i(TAG,"onActivityResult request="+request+" result="+result+" data="+(data==null?"null":data.getAction()));
         IntentResult scan=IntentIntegrator.parseActivityResult(request,result,data);
         if(scan!=null){if(scan.getContents()!=null)webView.evaluateJavascript("window.onAnubisScan("+JSONObject.quote(scan.getContents())+")",null);return;}
         if (request != FILE_PICKER || fileCallback == null) return;
@@ -72,7 +75,14 @@ public class MainActivity extends Activity {
     @Override public void onBackPressed() { if (webView.canGoBack()) webView.goBack(); else super.onBackPressed(); }
 
     private void startQrScanner() {
-        new IntentIntegrator(this).setCaptureActivity(com.journeyapps.barcodescanner.CaptureActivity.class).setDesiredBarcodeFormats(IntentIntegrator.QR_CODE).setPrompt("扫描电脑上的 Anubis 配对二维码").setBeepEnabled(false).setOrientationLocked(false).initiateScan();
+        Log.i(TAG,"startQrScanner activity="+getClass().getName()+" foreground="+hasWindowFocus());
+        try {
+            IntentIntegrator integrator=new IntentIntegrator(this).setCaptureActivity(com.journeyapps.barcodescanner.CaptureActivity.class).setDesiredBarcodeFormats(IntentIntegrator.QR_CODE).setPrompt("扫描电脑上的 Anubis 配对二维码").setBeepEnabled(false).setOrientationLocked(false);
+            Intent intent=integrator.createScanIntent();
+            Log.i(TAG,"scan intent component="+intent.getComponent()+" action="+intent.getAction());
+            startActivityForResult(intent,IntentIntegrator.REQUEST_CODE);
+            Log.i(TAG,"startActivityForResult dispatched");
+        } catch(Exception e) { Log.e(TAG,"scanner launch failed",e); Toast.makeText(this,"无法打开扫码相机："+e.getClass().getSimpleName(),Toast.LENGTH_LONG).show(); }
     }
 
     private class LocalClient extends WebViewClient {
@@ -84,6 +94,7 @@ public class MainActivity extends Activity {
             catch(Exception e){ return new WebResourceResponse("text/plain","UTF-8",404,"Not found",null,new ByteArrayInputStream(new byte[0])); }
         }
         private boolean route(Uri uri) {
+            Log.i(TAG,"route uri="+uri);
             if ("anubis".equals(uri.getScheme()) && "scan".equals(uri.getHost())) { startQrScanner(); return true; }
             if ("app.anubis.invalid".equals(uri.getHost())) return false;
             startActivity(new Intent(Intent.ACTION_VIEW,uri)); return true;
@@ -94,6 +105,7 @@ public class MainActivity extends Activity {
 
     private class AndroidBridge {
         @JavascriptInterface public void scanPairing() {
+            Log.i(TAG,"JavascriptInterface.scanPairing thread="+Thread.currentThread().getName());
             runOnUiThread(MainActivity.this::startQrScanner);
         }
         @JavascriptInterface public void saveBackup(String text, String filename) {
