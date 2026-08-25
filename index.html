@@ -22,7 +22,7 @@
         <label>主密码<input id="masterPassword" type="password" minlength="10" autocomplete="current-password" required placeholder="至少 10 个字符"></label>
         <label id="confirmWrap">再次输入<input id="confirmPassword" type="password" minlength="10" autocomplete="new-password" placeholder="确认主密码"></label>
         <button type="submit" class="primary" id="unlockSubmit">创建保险箱</button>
-        <button type="button" class="ghost wide" id="joinBtn">连接已有保险箱</button>
+        <button type="button" class="ghost wide" id="joinBtn">扫码加入保险箱</button>
       </form>
       <div class="notice">请牢记主密码并定期导出备份。忘记密码意味着数据永久无法解密。</div>
     </section>
@@ -33,12 +33,12 @@
       <div id="cards" class="grid"></div>
     </section>
   </main>
-  <dialog id="syncDialog"><form method="dialog"><div class="dialog-head"><h2>多端加密同步</h2><button type="button" class="icon close-sync">×</button></div>
-    <p class="muted">服务器只能看到随机密文。配对码相当于设备钥匙，请勿发给他人。</p><label>同步服务器<input id="syncServer" placeholder="例如：https://vault.example.com"></label>
-    <div id="syncSetup"><button type="button" id="enableSync" class="primary wide">启用同步并生成配对码</button></div>
-    <div id="syncReady" class="hidden"><label>新设备配对码<textarea id="pairingCode" rows="5" readonly></textarea></label><div class="actions"><button type="button" id="copyPairing" class="primary">复制配对码</button><button type="button" id="syncNow" class="ghost">立即同步</button></div></div>
+  <dialog id="syncDialog"><form method="dialog"><div class="dialog-head"><h2>添加新设备</h2><button type="button" class="icon close-sync">×</button></div>
+    <p class="muted">手机扫描二维码即可加入。二维码相当于设备钥匙，请勿发给他人。</p><label id="serverWrap">同步服务器<input id="syncServer" placeholder="正在识别电脑地址…"></label>
+    <div id="syncSetup"><button type="button" id="enableSync" class="primary wide">显示配对二维码</button></div>
+    <div id="syncReady" class="hidden"><img id="pairingQr" class="qr" alt="Anubis 设备配对二维码"><p class="qr-hint">在手机 Anubis 中点击“扫码加入保险箱”</p><details><summary>无法扫码？使用手动配对码</summary><label>配对码<textarea id="pairingCode" rows="5" readonly></textarea></label><button type="button" id="copyPairing" class="ghost wide">复制配对码</button></details><button type="button" id="syncNow" class="primary wide">立即同步</button></div>
   </form></dialog>
-  <dialog id="joinDialog"><form method="dialog"><div class="dialog-head"><h2>连接已有保险箱</h2><button type="button" class="icon close-join">×</button></div><p class="muted">在已登录设备的“多端同步”中复制配对码。</p><label>配对码<textarea id="joinCode" rows="6" placeholder="粘贴 Anubis 配对码"></textarea></label><div class="actions"><span></span><button type="button" class="ghost close-join">取消</button><button type="button" id="joinConfirm" class="primary">连接并下载密文</button></div></form></dialog>
+  <dialog id="joinDialog"><form method="dialog"><div class="dialog-head"><h2>扫码加入保险箱</h2><button type="button" class="icon close-join">×</button></div><p class="muted">扫描已登录电脑显示的配对二维码。</p><button type="button" id="scanPairing" class="primary wide">打开相机扫码</button><details><summary>无法扫码？手动粘贴</summary><label>配对码<textarea id="joinCode" rows="6" placeholder="粘贴 Anubis 配对码"></textarea></label><button type="button" id="joinConfirm" class="ghost wide">使用配对码加入</button></details></form></dialog>
   <dialog id="editor"><form id="secretForm" method="dialog"><div class="dialog-head"><h2 id="dialogTitle">保存新秘密</h2><button type="button" class="icon" id="closeDialog">×</button></div>
     <input id="editId" type="hidden"><label>类型<select id="kind"><option value="password">账号密码</option><option value="token">API Token / 密钥</option><option value="note">私密文字</option><option value="image">图片</option></select></label>
     <label>标题<input id="title" required maxlength="100" placeholder="例如：GitHub 账号"></label><label>标签<input id="tags" maxlength="100" placeholder="工作, 开发"></label>
@@ -48,6 +48,7 @@
   </form></dialog>
   <div id="toast" role="status"></div>
   <script src="app.js"></script>
+  <script src="vendor/qrcode.js"></script>
   <script src="sync.js"></script>
 </body>
 </html>

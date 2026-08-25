@@ -24,6 +24,9 @@ import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
+import org.json.JSONObject;
+import com.google.zxing.integration.android.IntentIntegrator;
+import com.google.zxing.integration.android.IntentResult;
 
 public class MainActivity extends Activity {
     private static final String ORIGIN = "https://app.anubis.invalid/";
@@ -57,6 +60,8 @@ public class MainActivity extends Activity {
 
     @Override protected void onActivityResult(int request, int result, Intent data) {
         super.onActivityResult(request, result, data);
+        IntentResult scan=IntentIntegrator.parseActivityResult(request,result,data);
+        if(scan!=null){if(scan.getContents()!=null)webView.evaluateJavascript("window.onAnubisScan("+JSONObject.quote(scan.getContents())+")",null);return;}
         if (request != FILE_PICKER || fileCallback == null) return;
         fileCallback.onReceiveValue(WebChromeClient.FileChooserParams.parseResult(result, data));
         fileCallback = null;
@@ -79,6 +84,9 @@ public class MainActivity extends Activity {
     }
 
     private class AndroidBridge {
+        @JavascriptInterface public void scanPairing() {
+            runOnUiThread(() -> new IntentIntegrator(MainActivity.this).setDesiredBarcodeFormats(IntentIntegrator.QR_CODE).setPrompt("扫描电脑上的 Anubis 配对二维码").setBeepEnabled(false).setOrientationLocked(false).initiateScan());
+        }
         @JavascriptInterface public void saveBackup(String text, String filename) {
             runOnUiThread(() -> { try {
                 OutputStream out;

@@ -8,16 +8,20 @@ android {
         applicationId 'com.smashwinny.anubis'
         minSdk 23
         targetSdk 34
-        versionCode 1
-        versionName '0.3.0'
+        versionCode 2
+        versionName '0.4.0'
     }
 
     sourceSets.main.assets.srcDir layout.buildDirectory.dir('generated/anubis-assets')
 }
 
+dependencies {
+    implementation 'com.journeyapps:zxing-android-embedded:4.3.0'
+}
+
 tasks.register('syncWebAssets', Copy) {
     from('../..')
-    include 'index.html', 'styles.css', 'sync.css', 'app.js', 'sync.js', 'manifest.webmanifest', 'icon.svg'
+    include 'index.html', 'styles.css', 'sync.css', 'app.js', 'sync.js', 'manifest.webmanifest', 'icon.svg', 'vendor/qrcode.js'
     into layout.buildDirectory.dir('generated/anubis-assets')
 }
 tasks.named('preBuild').configure { dependsOn 'syncWebAssets' }
