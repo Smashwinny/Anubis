@@ -8,8 +8,8 @@ android {
         applicationId 'com.smashwinny.anubis'
         minSdk 23
         targetSdk 34
-        versionCode 8
-        versionName '0.5.5'
+        versionCode 9
+        versionName '0.6.0'
     }
 
     sourceSets.main.assets.srcDir layout.buildDirectory.dir('generated/anubis-assets')

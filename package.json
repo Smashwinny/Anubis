@@ -1,1 +1,1 @@
-{"name":"anubis-vault","version":"0.5.0","private":true,"description":"Zero-knowledge multi-device vault","scripts":{"start":"node server.js","test":"node --test tests/*.test.js"},"engines":{"node":">=18"},"license":"MIT"}
+{"name":"anubis-vault","version":"0.6.0","private":true,"description":"Zero-knowledge multi-device vault","scripts":{"start":"node server.js","test":"node --test tests/*.test.js"},"engines":{"node":">=18"},"license":"MIT"}
